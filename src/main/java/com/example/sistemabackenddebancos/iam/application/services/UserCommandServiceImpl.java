@@ -1,6 +1,7 @@
 package com.example.sistemabackenddebancos.iam.application.services;
 
 import com.example.sistemabackenddebancos.iam.application.security.hashing.PasswordHasher;
+import com.example.sistemabackenddebancos.iam.application.security.mfa.TotpService;
 import com.example.sistemabackenddebancos.iam.application.security.tokens.TokenService;
 import com.example.sistemabackenddebancos.iam.domain.model.aggregates.User;
 import com.example.sistemabackenddebancos.iam.domain.model.commands.ChangePasswordCommand;
@@ -10,6 +11,7 @@ import com.example.sistemabackenddebancos.iam.domain.model.commands.RegisterUser
 import com.example.sistemabackenddebancos.iam.domain.model.entities.MfaMethod;
 import com.example.sistemabackenddebancos.iam.domain.model.enumerations.UserStatus;
 import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.MfaMethodId;
+import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.MfaType;
 import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.PasswordHash;
 import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.UserId;
 import com.example.sistemabackenddebancos.iam.domain.repositories.UserRepository;
@@ -27,15 +29,19 @@ public class UserCommandServiceImpl implements UserCommandService {
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
     private final TokenService tokenService;
+    private final TotpService totpService;
 
     public UserCommandServiceImpl(
             UserRepository userRepository,
             PasswordHasher passwordHasher,
-            TokenService tokenService
+            TokenService tokenService,
+            TotpService totpService
     ) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.tokenService = tokenService;
+        this.totpService = totpService;
+
     }
 
     @Override
@@ -68,7 +74,15 @@ public class UserCommandServiceImpl implements UserCommandService {
         if (user.mfaEnabled()) {
             var code = command.mfaCode();
             if (code == null || code.trim().isEmpty()) return Optional.empty();
+
+            boolean verifiedOk = user.mfaMethods().stream()
+                    .filter(m -> m.type() == com.example.sistemabackenddebancos.iam.domain.model.valueobjects.MfaType.AUTH_APP)
+                    .filter(com.example.sistemabackenddebancos.iam.domain.model.entities.MfaMethod::verified)
+                    .anyMatch(m -> totpService.verifyCode(m.secret(), code));
+
+            if (!verifiedOk) return Optional.empty();
         }
+
 
         var token = tokenService.generate(user);
         return Optional.of(new ImmutablePair<>(user, token));
@@ -115,11 +129,18 @@ public class UserCommandServiceImpl implements UserCommandService {
 
         var user = userOpt.get();
 
+        String secret = null;
+
+        if (command.type() == MfaType.AUTH_APP) {
+            secret = totpService.generateSecret();
+        }
+
         var newMethod = new MfaMethod(
                 MfaMethodId.newId(),
                 command.type(),
                 command.destination(),
-                false
+                false,
+                secret
         );
 
         var newList = new ArrayList<>(user.mfaMethods());
