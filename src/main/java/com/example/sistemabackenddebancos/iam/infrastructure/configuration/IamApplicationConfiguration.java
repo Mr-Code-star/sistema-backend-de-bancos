@@ -1,6 +1,7 @@
 package com.example.sistemabackenddebancos.iam.infrastructure.configuration;
 
 import com.example.sistemabackenddebancos.iam.application.security.hashing.PasswordHasher;
+import com.example.sistemabackenddebancos.iam.application.security.mfa.TotpService;
 import com.example.sistemabackenddebancos.iam.application.security.tokens.TokenService;
 import com.example.sistemabackenddebancos.iam.application.services.UserCommandServiceImpl;
 import com.example.sistemabackenddebancos.iam.application.services.UserQueryServiceImpl;
@@ -17,9 +18,11 @@ public class IamApplicationConfiguration {
     public UserCommandService userCommandService(
             UserRepository userRepository,
             PasswordHasher passwordHasher,
-            TokenService tokenService
+            TokenService tokenService,
+            TotpService totpService
+
     ) {
-        return new UserCommandServiceImpl(userRepository, passwordHasher, tokenService);
+        return new UserCommandServiceImpl(userRepository, passwordHasher, tokenService, totpService);
     }
 
     @Bean
