@@ -27,6 +27,13 @@ public class MfaMethodEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private UserEntity user;
 
+    @Column(name = "secret")
+    private String secret;
+
+    public String getSecret() { return secret; }
+    public void setSecret(String secret) { this.secret = secret; }
+
+
     public MfaMethodEntity() {}
 
     // getters/setters
