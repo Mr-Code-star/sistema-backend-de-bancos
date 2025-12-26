@@ -1,7 +1,8 @@
 package com.example.sistemabackenddebancos.iam.application.services;
 
 import com.example.sistemabackenddebancos.iam.application.security.hashing.PasswordHasher;
-import com.example.sistemabackenddebancos.iam.application.security.mfa.TotpService;
+import com.example.sistemabackenddebancos.iam.application.security.mfa.EmailService;
+import com.example.sistemabackenddebancos.iam.application.security.mfa.SmsService;
 import com.example.sistemabackenddebancos.iam.application.security.tokens.TokenService;
 import com.example.sistemabackenddebancos.iam.domain.model.aggregates.User;
 import com.example.sistemabackenddebancos.iam.domain.model.commands.ChangePasswordCommand;
@@ -16,33 +17,46 @@ import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.Password
 import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.UserId;
 import com.example.sistemabackenddebancos.iam.domain.repositories.UserRepository;
 import com.example.sistemabackenddebancos.iam.domain.services.UserCommandService;
+import com.example.sistemabackenddebancos.iam.infrastructure.security.mfa.VerificationCodeService;
 import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 public class UserCommandServiceImpl implements UserCommandService {
 
     private static final int MAX_FAILED_ATTEMPTS = 5;
-
+    private static final Logger log = LoggerFactory.getLogger(UserCommandServiceImpl.class);
     private final UserRepository userRepository;
     private final PasswordHasher passwordHasher;
     private final TokenService tokenService;
-    private final TotpService totpService;
+    private final SmsService smsService;
+    private final EmailService emailService;
+    private final VerificationCodeService verificationCodeService;
+
 
     public UserCommandServiceImpl(
             UserRepository userRepository,
             PasswordHasher passwordHasher,
             TokenService tokenService,
-            TotpService totpService
+            SmsService smsService,
+            EmailService emailService,
+            VerificationCodeService verificationCodeService
+
     ) {
         this.userRepository = userRepository;
         this.passwordHasher = passwordHasher;
         this.tokenService = tokenService;
-        this.totpService = totpService;
+        this.smsService = smsService;
+        this.emailService = emailService;
+        this.verificationCodeService = verificationCodeService;
 
     }
+
 
     @Override
     public Optional<ImmutablePair<User, String>> handle(LoginCommand command) {
@@ -51,10 +65,13 @@ public class UserCommandServiceImpl implements UserCommandService {
 
         var user = userOpt.get();
 
-        // reglas mínimas
+        // Verificar estado - solo bloquear si está BLOCKED
         if (user.status() == UserStatus.BLOCKED) return Optional.empty();
-        if (user.status() != UserStatus.ACTIVE) return Optional.empty();
 
+        // Si está PENDING, activarlo automáticamente
+        boolean shouldActivate = user.status() == UserStatus.PENDING;
+
+        // Verificar contraseña
         boolean ok = passwordHasher.matches(command.plainPassword(), user.passwordHash().value());
         if (!ok) {
             int newFailed = user.failedAttempts() + 1;
@@ -64,28 +81,106 @@ public class UserCommandServiceImpl implements UserCommandService {
             return Optional.empty();
         }
 
-        // si está ok, resetea intentos
-        if (user.failedAttempts() != 0) {
-            user = copyUser(user, null, null, null, null, null, 0);
-            userRepository.save(user);
+        // Create a final variable for use in lambda
+        final User finalUser;
+
+        // Si debe activarse, crear usuario activado
+        if (shouldActivate) {
+            var activatedUser = copyUser(user, null, null, UserStatus.ACTIVE, null, null, 0);
+            finalUser = userRepository.save(activatedUser);
+        }
+        // Resetear intentos fallidos
+        else if (user.failedAttempts() != 0) {
+            var updatedUser = copyUser(user, null, null, null, null, null, 0);
+            finalUser = userRepository.save(updatedUser);
+        } else {
+            finalUser = user;
         }
 
-        // MFA (placeholder): si está habilitado, exigir mfaCode no vacío
-        if (user.mfaEnabled()) {
-            var code = command.mfaCode();
-            if (code == null || code.trim().isEmpty()) return Optional.empty();
+        // ¡¡¡CAMBIOS AQUÍ!!! - VERIFICACIÓN MFA MÁS ESTRICTA
+        if (finalUser.mfaEnabled()) {
+            // ✅ NUEVA LÓGICA: Si mfaEnabled = true, SIEMPRE requerir código
+            if (command.mfaCode() == null || command.mfaCode().trim().isEmpty()) {
+                // Se requiere MFA pero no se proporcionó código
+                return Optional.empty();
+            }
 
-            boolean verifiedOk = user.mfaMethods().stream()
-                    .filter(m -> m.type() == com.example.sistemabackenddebancos.iam.domain.model.valueobjects.MfaType.AUTH_APP)
-                    .filter(com.example.sistemabackenddebancos.iam.domain.model.entities.MfaMethod::verified)
-                    .anyMatch(m -> totpService.verifyCode(m.secret(), code));
+            // Verificar si hay métodos MFA registrados (verificados o no)
+            var allMethods = finalUser.mfaMethods();
+            if (allMethods.isEmpty()) {
+                // Si está habilitado pero no tiene métodos, algo está mal
+                // Podemos deshabilitar MFA o rechazar login
+                log.warn("Usuario tiene MFA habilitado pero no tiene métodos registrados. User ID: {}", finalUser.id());
+                return Optional.empty();
+            }
 
-            if (!verifiedOk) return Optional.empty();
+            // Verificar el código contra TODOS los métodos (verificados o no)
+            boolean mfaVerified = allMethods.stream()
+                    .anyMatch(method -> {
+                        if (method.type() == MfaType.SMS) {
+                            return verificationCodeService.verifyCode(
+                                    finalUser.id().value().toString(),
+                                    MfaType.SMS,
+                                    method.destination(),
+                                    command.mfaCode()
+                            );
+                        } else if (method.type() == MfaType.EMAIL) {
+                            return verificationCodeService.verifyCode(
+                                    finalUser.id().value().toString(),
+                                    MfaType.EMAIL,
+                                    method.destination(),
+                                    command.mfaCode()
+                            );
+                        }
+                        return false;
+                    });
+
+            if (!mfaVerified) {
+                return Optional.empty();
+            }
+
+            // ✅ Si el código es correcto, marcar el método como VERIFICADO automáticamente
+            // (Esto es opcional, pero buena práctica)
+            boolean shouldMarkAsVerified = allMethods.stream()
+                    .anyMatch(method -> !method.verified() &&
+                            ((method.type() == MfaType.SMS &&
+                                    verificationCodeService.verifyCode(finalUser.id().value().toString(), MfaType.SMS, method.destination(), command.mfaCode())) ||
+                                    (method.type() == MfaType.EMAIL &&
+                                            verificationCodeService.verifyCode(finalUser.id().value().toString(), MfaType.EMAIL, method.destination(), command.mfaCode()))));
+
+            if (shouldMarkAsVerified) {
+                var updatedMethods = allMethods.stream()
+                        .map(method -> {
+                            // Verificar si este método coincide con el código
+                            boolean codeMatches = false;
+                            if (method.type() == MfaType.SMS) {
+                                codeMatches = verificationCodeService.verifyCode(
+                                        finalUser.id().value().toString(),
+                                        MfaType.SMS,
+                                        method.destination(),
+                                        command.mfaCode()
+                                );
+                            } else if (method.type() == MfaType.EMAIL) {
+                                codeMatches = verificationCodeService.verifyCode(
+                                        finalUser.id().value().toString(),
+                                        MfaType.EMAIL,
+                                        method.destination(),
+                                        command.mfaCode()
+                                );
+                            }
+
+                            // Si coincide y no está verificado, verificarlo
+                            return codeMatches && !method.verified() ? method.verify() : method;
+                        })
+                        .collect(Collectors.toList());
+
+                var updatedUser = copyUser(finalUser, null, null, null, null, updatedMethods, null);
+                userRepository.save(updatedUser);
+            }
         }
 
-
-        var token = tokenService.generate(user);
-        return Optional.of(new ImmutablePair<>(user, token));
+        var token = tokenService.generate(finalUser);
+        return Optional.of(new ImmutablePair<>(finalUser, token));
     }
 
     @Override
@@ -129,23 +224,47 @@ public class UserCommandServiceImpl implements UserCommandService {
 
         var user = userOpt.get();
 
-        String secret = null;
+        // Validar destino según tipo
+        if (command.type() == MfaType.SMS) {
+            if (!smsService.isValidPhoneNumber(command.destination())) {
+                throw new IllegalArgumentException("Número peruano inválido. Formato: +519XXXXXXXX");
+            }
 
-        if (command.type() == MfaType.AUTH_APP) {
-            secret = totpService.generateSecret();
+            // Generar y enviar código de verificación
+            String code = verificationCodeService.generateCode(
+                    user.id().value().toString(),
+                    MfaType.SMS,
+                    command.destination()
+            );
+
+            smsService.sendVerificationCode(command.destination(), code);
+
+        } else if (command.type() == MfaType.EMAIL) {
+            if (!emailService.isValidEmail(command.destination())) {
+                throw new IllegalArgumentException("Email inválido");
+            }
+
+            // Generar y enviar código de verificación
+            String code = verificationCodeService.generateCode(
+                    user.id().value().toString(),
+                    MfaType.EMAIL,
+                    command.destination()
+            );
+
+            emailService.sendVerificationCode(command.destination(), code);
         }
 
         var newMethod = new MfaMethod(
                 MfaMethodId.newId(),
                 command.type(),
                 command.destination(),
-                false,
-                secret
+                false // No verificado aún
         );
 
         var newList = new ArrayList<>(user.mfaMethods());
         newList.add(newMethod);
 
+        // ✅ CAMBIAR: Habilitar MFA inmediatamente
         var updated = copyUser(user, null, null, null, true, newList, null);
         return Optional.of(userRepository.save(updated));
     }
