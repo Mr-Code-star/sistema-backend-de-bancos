@@ -5,6 +5,5 @@ package com.example.sistemabackenddebancos.iam.domain.model.valueobjects;
  */
 public enum MfaType {
     EMAIL,
-    SMS,
-    AUTH_APP
+    SMS
 }
