@@ -104,9 +104,9 @@
         </dependency>
 
         <dependency>
-            <groupId>com.twilio.sdk</groupId>
-            <artifactId>twilio</artifactId>
-            <version>9.0.0</version>
+            <groupId>com.vonage</groupId>
+            <artifactId>client</artifactId>
+            <version>7.8.0</version> <!-- Verifica la última versión -->
         </dependency>
 
     </dependencies>
