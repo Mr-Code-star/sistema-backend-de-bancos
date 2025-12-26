@@ -3,7 +3,6 @@ package com.example.sistemabackenddebancos.iam.infrastructure.configuration;
 import com.example.sistemabackenddebancos.iam.application.security.hashing.PasswordHasher;
 import com.example.sistemabackenddebancos.iam.application.security.mfa.EmailService;
 import com.example.sistemabackenddebancos.iam.application.security.mfa.SmsService;
-import com.example.sistemabackenddebancos.iam.application.security.mfa.TotpService;
 import com.example.sistemabackenddebancos.iam.application.security.tokens.TokenService;
 import com.example.sistemabackenddebancos.iam.application.services.UserCommandServiceImpl;
 import com.example.sistemabackenddebancos.iam.application.services.UserQueryServiceImpl;
