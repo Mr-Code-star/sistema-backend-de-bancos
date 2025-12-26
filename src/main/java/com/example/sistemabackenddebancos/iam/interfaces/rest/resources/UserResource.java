@@ -1,5 +1,6 @@
 package com.example.sistemabackenddebancos.iam.interfaces.rest.resources;
 
+import com.example.sistemabackenddebancos.iam.domain.model.aggregates.User;
 import com.example.sistemabackenddebancos.iam.domain.model.commands.ChangePasswordCommand;
 import com.example.sistemabackenddebancos.iam.domain.model.commands.RegisterMfaMethodCommand;
 import com.example.sistemabackenddebancos.iam.domain.model.queries.GetMfaMethodsQuery;
@@ -9,13 +10,17 @@ import com.example.sistemabackenddebancos.iam.domain.model.queries.GetUserStatus
 import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.Email;
 import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.MfaType;
 import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.UserId;
+import com.example.sistemabackenddebancos.iam.domain.repositories.UserRepository;
 import com.example.sistemabackenddebancos.iam.domain.services.UserCommandService;
 import com.example.sistemabackenddebancos.iam.domain.services.UserQueryService;
+import com.example.sistemabackenddebancos.iam.infrastructure.security.mfa.VerificationCodeService;
+import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.VerifyMfaRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/iam/users")
@@ -23,10 +28,14 @@ public class UserResource {
 
     private final UserCommandService userCommandService;
     private final UserQueryService userQueryService;
+    private final VerificationCodeService verificationCodeService;
+    private final UserRepository userRepository;
 
-    public UserResource(UserCommandService userCommandService, UserQueryService userQueryService) {
+    public UserResource(UserCommandService userCommandService, UserQueryService userQueryService, VerificationCodeService verificationCodeService,  UserRepository userRepository ) {
         this.userCommandService = userCommandService;
         this.userQueryService = userQueryService;
+        this.verificationCodeService = verificationCodeService;
+        this.userRepository = userRepository;
     }
 
     // -------- Queries --------
@@ -107,5 +116,64 @@ public class UserResource {
         return userCommandService.handle(cmd)
                 .<ResponseEntity<?>>map(u -> ResponseEntity.status(201).body(Map.of("mfaEnabled", u.mfaEnabled())))
                 .orElseGet(() -> ResponseEntity.badRequest().body("Could not register mfa method"));
+    }
+
+    @PostMapping("/{id}/verify-mfa")
+    public ResponseEntity<?> verifyMfa(
+            @PathVariable String id,
+            @RequestBody VerifyMfaRequest req
+    ) {
+        var userOpt = userQueryService.handle(new GetUserByIdQuery(new UserId(UUID.fromString(id))));
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        var user = userOpt.get();
+
+        // Buscar el método MFA por ID
+        var methodOpt = user.mfaMethods().stream()
+                .filter(m -> m.id().value().toString().equals(req.mfaMethodId()))
+                .findFirst();
+
+        if (methodOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body("Método MFA no encontrado");
+        }
+
+        var method = methodOpt.get();
+
+        // Verificar código
+        boolean verified = verificationCodeService.verifyCode(
+                id,
+                method.type(),
+                method.destination(),
+                req.code()
+        );
+
+        if (verified) {
+            // Actualizar método como verificado
+            var updatedMethods = user.mfaMethods().stream()
+                    .map(m -> m.id().value().toString().equals(req.mfaMethodId()) ? m.verify() : m)
+                    .collect(Collectors.toList());
+
+            // Crear usuario actualizado
+            var updatedUser = new User(
+                    user.id(),
+                    user.email(),
+                    user.passwordHash(),
+                    user.status(),
+                    user.mfaEnabled(),
+                    updatedMethods,
+                    user.failedAttempts()
+            );
+
+            userRepository.save(updatedUser);
+
+            return ResponseEntity.ok(Map.of(
+                    "verified", true,
+                    "message", "Método MFA verificado exitosamente"
+            ));
+        }
+
+        return ResponseEntity.badRequest().body("Código inválido o expirado");
     }
 }
