@@ -19,8 +19,7 @@ public class UserPersistenceMapper {
                         new MfaMethodId(me.getId()),
                         me.getType(),
                         me.getDestination(),
-                        me.isVerified(),
-                        me.getSecret()
+                        me.isVerified()
                 )
         ).toList();
 
@@ -51,7 +50,6 @@ public class UserPersistenceMapper {
             me.setType(m.type());
             me.setDestination(m.destination());
             me.setVerified(m.verified());
-            me.setSecret(m.secret());  // ← ¡ESTO ES LO QUE FALTA!
             me.setUser(e);
             list.add(me);
         }
