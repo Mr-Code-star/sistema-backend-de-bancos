@@ -1,6 +1,8 @@
 package com.example.sistemabackenddebancos.iam.infrastructure.configuration;
 
 import com.example.sistemabackenddebancos.iam.application.security.hashing.PasswordHasher;
+import com.example.sistemabackenddebancos.iam.application.security.mfa.EmailService;
+import com.example.sistemabackenddebancos.iam.application.security.mfa.SmsService;
 import com.example.sistemabackenddebancos.iam.application.security.mfa.TotpService;
 import com.example.sistemabackenddebancos.iam.application.security.tokens.TokenService;
 import com.example.sistemabackenddebancos.iam.application.services.UserCommandServiceImpl;
@@ -8,6 +10,7 @@ import com.example.sistemabackenddebancos.iam.application.services.UserQueryServ
 import com.example.sistemabackenddebancos.iam.domain.repositories.UserRepository;
 import com.example.sistemabackenddebancos.iam.domain.services.UserCommandService;
 import com.example.sistemabackenddebancos.iam.domain.services.UserQueryService;
+import com.example.sistemabackenddebancos.iam.infrastructure.security.mfa.VerificationCodeService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,10 +22,18 @@ public class IamApplicationConfiguration {
             UserRepository userRepository,
             PasswordHasher passwordHasher,
             TokenService tokenService,
-            TotpService totpService
-
+            SmsService smsService,
+            EmailService emailService,
+            VerificationCodeService verificationCodeService
     ) {
-        return new UserCommandServiceImpl(userRepository, passwordHasher, tokenService, totpService);
+        return new UserCommandServiceImpl(
+                userRepository,
+                passwordHasher,
+                tokenService,
+                smsService,
+                emailService,
+                verificationCodeService
+        );
     }
 
     @Bean
