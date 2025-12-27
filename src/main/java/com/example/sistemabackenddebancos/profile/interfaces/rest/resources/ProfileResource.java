@@ -11,6 +11,7 @@ import com.example.sistemabackenddebancos.profile.domain.services.ProfileQuerySe
 import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.requests.*;
 import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.responses.AddressResponse;
 import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.responses.ProfileResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +19,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/profiles")
+@SecurityRequirement(name = "bearerAuth")
 public class ProfileResource {
 
     private final ProfileCommandService commandService;
