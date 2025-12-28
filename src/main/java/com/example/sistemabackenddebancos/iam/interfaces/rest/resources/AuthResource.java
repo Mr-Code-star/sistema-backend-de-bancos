@@ -11,8 +11,6 @@ import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.Reg
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/v1/iam/auth")
 public class AuthResource {
@@ -52,26 +50,5 @@ public class AuthResource {
                     ));
                 })
                 .orElseGet(() -> ResponseEntity.status(401).body("Invalid credentials"));
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(
-            @RequestHeader(value = "Authorization", required = false) String authHeader
-    ) {
-        String message = "Sesión cerrada exitosamente";
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            // Opcional: Podrías registrar el logout en logs
-            // logger.info("User logged out with token: {}", token.substring(0, 10) + "...");
-            message = "Sesión cerrada. Token invalidado en el cliente.";
-        }
-
-        return ResponseEntity.ok(Map.of(
-                "success", true,
-                "message", message,
-                "action", "Eliminar el token JWT del almacenamiento del cliente",
-                "nextStep", "El usuario puede volver a iniciar sesión cuando desee"
-        ));
     }
 }
