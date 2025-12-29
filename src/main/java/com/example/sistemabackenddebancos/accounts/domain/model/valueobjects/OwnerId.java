@@ -1,0 +1,10 @@
+package com.example.sistemabackenddebancos.accounts.domain.model.valueobjects;
+
+import java.util.Objects;
+import java.util.UUID;
+
+public record OwnerId(UUID value) {
+    public OwnerId {
+        Objects.requireNonNull(value, "OwnerId.value cannot be null");
+    }
+}
