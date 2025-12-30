@@ -13,6 +13,8 @@ import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.responses
 import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.responses.ProfileResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
@@ -30,10 +32,21 @@ public class ProfileResource {
         this.queryService = queryService;
     }
 
-    // -------- CREATE PROFILE --------
+    // ✅ userId viene SIEMPRE del JWT (subject/principal)
+    private UUID currentUserId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getPrincipal() == null) throw new IllegalStateException("Unauthenticated");
+        return UUID.fromString(auth.getPrincipal().toString());
+    }
+
+    private boolean isOwner(com.example.sistemabackenddebancos.profile.domain.model.aggregates.Profile p) {
+        return p.userId().value().equals(currentUserId());
+    }
+
+    // -------- CREATE PROFILE (userId desde JWT) --------
     @PostMapping
     public ResponseEntity<?> create(@RequestBody CreateProfileRequest req) {
-        var userId = new UserId(UUID.fromString(req.userId()));
+        var userId = new UserId(currentUserId());
         var fullName = new FullName(req.givenNames(), req.paternalSurname(), req.maternalSurname());
         var phone = new PhoneNumber(req.phoneNumber());
 
@@ -47,31 +60,39 @@ public class ProfileResource {
 
         return commandService.handle(cmd)
                 .<ResponseEntity<?>>map(p -> ResponseEntity.status(201).body(toResponse(p)))
-                .orElseGet(() -> ResponseEntity.badRequest().body("Profile already exists for this userId"));
+                .orElseGet(() -> ResponseEntity.badRequest().body("Profile already exists for this user"));
     }
 
-    // -------- GET BY PROFILE ID --------
+    // -------- GET MY PROFILE --------
+    @GetMapping("/me")
+    public ResponseEntity<?> getMe() {
+        var q = new GetProfileByUserIdQuery(new UserId(currentUserId()));
+        return queryService.handle(q)
+                .<ResponseEntity<?>>map(p -> ResponseEntity.ok(toResponse(p)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    // -------- GET BY PROFILE ID (ownership check) --------
     @GetMapping("/{profileId}")
     public ResponseEntity<?> getById(@PathVariable String profileId) {
         var q = new GetProfileByIdQuery(new ProfileId(UUID.fromString(profileId)));
-        return queryService.handle(q)
-                .<ResponseEntity<?>>map(p -> ResponseEntity.ok(toResponse(p)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        var opt = queryService.handle(q);
+
+        if (opt.isEmpty()) return ResponseEntity.notFound().build();
+        if (!isOwner(opt.get())) return ResponseEntity.status(403).body("Forbidden");
+
+        return ResponseEntity.ok(toResponse(opt.get()));
     }
 
-    // -------- GET BY USER ID --------
-    @GetMapping("/by-user/{userId}")
-    public ResponseEntity<?> getByUserId(@PathVariable String userId) {
-        var q = new GetProfileByUserIdQuery(new UserId(UUID.fromString(userId)));
-        return queryService.handle(q)
-                .<ResponseEntity<?>>map(p -> ResponseEntity.ok(toResponse(p)))
-                .orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    // -------- UPDATE BASIC INFO --------
+    // -------- UPDATE BASIC INFO (ownership check) --------
     @PutMapping("/{profileId}")
     public ResponseEntity<?> update(@PathVariable String profileId, @RequestBody UpdateProfileRequest req) {
         var id = new ProfileId(UUID.fromString(profileId));
+
+        var existing = queryService.handle(new GetProfileByIdQuery(id));
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        if (!isOwner(existing.get())) return ResponseEntity.status(403).body("Forbidden");
+
         var fullName = new FullName(req.givenNames(), req.paternalSurname(), req.maternalSurname());
         var phone = new PhoneNumber(req.phoneNumber());
 
@@ -82,11 +103,17 @@ public class ProfileResource {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // -------- ADD ADDRESS --------
+    // -------- ADD ADDRESS (ownership check) --------
     @PostMapping("/{profileId}/addresses")
     public ResponseEntity<?> addAddress(@PathVariable String profileId, @RequestBody AddAddressRequest req) {
+        var id = new ProfileId(UUID.fromString(profileId));
+
+        var existing = queryService.handle(new GetProfileByIdQuery(id));
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        if (!isOwner(existing.get())) return ResponseEntity.status(403).body("Forbidden");
+
         var cmd = new AddAddressCommand(
-                new ProfileId(UUID.fromString(profileId)),
+                id,
                 AddressType.valueOf(req.type()),
                 req.line1(),
                 req.line2(),
@@ -102,14 +129,20 @@ public class ProfileResource {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // -------- UPDATE ADDRESS --------
+    // -------- UPDATE ADDRESS (ownership check) --------
     @PutMapping("/{profileId}/addresses/{addressId}")
     public ResponseEntity<?> updateAddress(@PathVariable String profileId,
                                            @PathVariable String addressId,
                                            @RequestBody UpdateAddressRequest req) {
 
+        var id = new ProfileId(UUID.fromString(profileId));
+
+        var existing = queryService.handle(new GetProfileByIdQuery(id));
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        if (!isOwner(existing.get())) return ResponseEntity.status(403).body("Forbidden");
+
         var cmd = new UpdateAddressCommand(
-                new ProfileId(UUID.fromString(profileId)),
+                id,
                 new AddressId(UUID.fromString(addressId)),
                 AddressType.valueOf(req.type()),
                 req.line1(),
@@ -125,11 +158,17 @@ public class ProfileResource {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // -------- DELETE ADDRESS --------
+    // -------- DELETE ADDRESS (ownership check) --------
     @DeleteMapping("/{profileId}/addresses/{addressId}")
     public ResponseEntity<?> removeAddress(@PathVariable String profileId, @PathVariable String addressId) {
+        var id = new ProfileId(UUID.fromString(profileId));
+
+        var existing = queryService.handle(new GetProfileByIdQuery(id));
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        if (!isOwner(existing.get())) return ResponseEntity.status(403).body("Forbidden");
+
         var cmd = new RemoveAddressCommand(
-                new ProfileId(UUID.fromString(profileId)),
+                id,
                 new AddressId(UUID.fromString(addressId))
         );
 
@@ -138,11 +177,17 @@ public class ProfileResource {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // -------- SET PRIMARY ADDRESS --------
+    // -------- SET PRIMARY ADDRESS (ownership check) --------
     @PutMapping("/{profileId}/addresses/{addressId}/primary")
     public ResponseEntity<?> setPrimary(@PathVariable String profileId, @PathVariable String addressId) {
+        var id = new ProfileId(UUID.fromString(profileId));
+
+        var existing = queryService.handle(new GetProfileByIdQuery(id));
+        if (existing.isEmpty()) return ResponseEntity.notFound().build();
+        if (!isOwner(existing.get())) return ResponseEntity.status(403).body("Forbidden");
+
         var cmd = new SetPrimaryAddressCommand(
-                new ProfileId(UUID.fromString(profileId)),
+                id,
                 new AddressId(UUID.fromString(addressId))
         );
 
