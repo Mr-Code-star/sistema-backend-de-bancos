@@ -5,9 +5,9 @@ import com.example.sistemabackenddebancos.iam.domain.model.commands.LoginCommand
 import com.example.sistemabackenddebancos.iam.domain.model.commands.RegisterUserCommand;
 import com.example.sistemabackenddebancos.iam.domain.model.valueobjects.Email;
 import com.example.sistemabackenddebancos.iam.domain.services.UserCommandService;
-import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.AuthResponse;
-import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.LoginRequest;
-import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.RegisterUserRequest;
+import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.responses.AuthResponse;
+import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.requests.LoginRequest;
+import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.requests.RegisterUserRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
