@@ -1,4 +1,4 @@
-package com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos;
+package com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.responses;
 
 public record AuthResponse(
         String userId,
