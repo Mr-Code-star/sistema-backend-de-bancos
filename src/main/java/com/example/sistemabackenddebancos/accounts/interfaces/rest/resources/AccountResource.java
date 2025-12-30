@@ -1,5 +1,6 @@
 package com.example.sistemabackenddebancos.accounts.interfaces.rest.resources;
 
+import com.example.sistemabackenddebancos.accounts.domain.model.aggregates.BankAccount;
 import com.example.sistemabackenddebancos.accounts.domain.model.commands.*;
 import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.AccountType;
 import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.Currency;
@@ -42,7 +43,7 @@ public class AccountResource {
         return UUID.fromString(auth.getPrincipal().toString());
     }
 
-    private boolean isOwner(com.example.sistemabackenddebancos.accounts.domain.model.aggregates.BankAccount a) {
+    private boolean isOwner(BankAccount a) {
         return a.ownerId().value().equals(currentUserId());
     }
 
