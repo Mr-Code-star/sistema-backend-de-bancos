@@ -22,7 +22,7 @@ public class BankAccount {
     private final Currency currency;
     private final Money balance;
 
-    private BankAccount (AccountId id,
+    public BankAccount (AccountId id,
                          OwnerId ownerId,
                          AccountNumber accountNumber,
                          AccountType type,
