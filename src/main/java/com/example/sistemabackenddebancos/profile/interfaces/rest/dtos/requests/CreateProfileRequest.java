@@ -1,7 +1,6 @@
 package com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.requests;
 
 public record CreateProfileRequest(
-        String userId,
         String givenNames,
         String paternalSurname,
         String maternalSurname,
