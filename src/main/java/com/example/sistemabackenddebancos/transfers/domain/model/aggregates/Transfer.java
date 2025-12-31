@@ -1,9 +1,9 @@
-package com.example.sistemabackenddebancos.transfers.model.aggregates;
+package com.example.sistemabackenddebancos.transfers.domain.model.aggregates;
 
 import com.example.sistemabackenddebancos.shared.domain.model.enumerations.Currency;
-import com.example.sistemabackenddebancos.transfers.model.enumerations.TransferStatus;
-import com.example.sistemabackenddebancos.transfers.model.valueobjects.TransferId;
-import com.example.sistemabackenddebancos.transfers.model.valueobjects.TransferReference;
+import com.example.sistemabackenddebancos.transfers.domain.model.enumerations.TransferStatus;
+import com.example.sistemabackenddebancos.transfers.domain.model.valueobjects.TransferId;
+import com.example.sistemabackenddebancos.transfers.domain.model.valueobjects.TransferReference;
 
 import java.math.BigDecimal;
 import java.util.Objects;

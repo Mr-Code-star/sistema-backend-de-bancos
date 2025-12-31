@@ -1,4 +1,4 @@
-package com.example.sistemabackenddebancos.transfers.model.valueobjects;
+package com.example.sistemabackenddebancos.transfers.domain.model.valueobjects;
 
 import java.util.Objects;
 import java.util.UUID;
