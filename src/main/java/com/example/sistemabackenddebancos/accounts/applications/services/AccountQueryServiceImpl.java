@@ -2,7 +2,7 @@ package com.example.sistemabackenddebancos.accounts.applications.services;
 
 import com.example.sistemabackenddebancos.accounts.domain.model.aggregates.BankAccount;
 import com.example.sistemabackenddebancos.accounts.domain.model.queries.*;
-import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.Money;
+import com.example.sistemabackenddebancos.shared.domain.model.valueobjects.Money;
 import com.example.sistemabackenddebancos.accounts.domain.repositories.AccountRepository;
 import com.example.sistemabackenddebancos.accounts.domain.services.AccountQueryService;
 import org.springframework.stereotype.Service;

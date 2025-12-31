@@ -1,6 +1,6 @@
-package com.example.sistemabackenddebancos.accounts.domain.model.valueobjects;
+package com.example.sistemabackenddebancos.shared.domain.model.valueobjects;
 
-import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.Currency;
+import com.example.sistemabackenddebancos.shared.domain.model.enumerations.Currency;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;

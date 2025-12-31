@@ -1,6 +1,7 @@
 package com.example.sistemabackenddebancos.accounts.infrastructure.persistence.jpa.entities;
 
 import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.*;
+import com.example.sistemabackenddebancos.shared.domain.model.enumerations.Currency;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;

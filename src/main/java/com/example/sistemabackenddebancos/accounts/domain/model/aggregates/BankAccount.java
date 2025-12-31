@@ -2,10 +2,10 @@ package com.example.sistemabackenddebancos.accounts.domain.model.aggregates;
 
 import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.AccountStatus;
 import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.AccountType;
-import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.Currency;
+import com.example.sistemabackenddebancos.shared.domain.model.enumerations.Currency;
 import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.AccountId;
 import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.AccountNumber;
-import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.Money;
+import com.example.sistemabackenddebancos.shared.domain.model.valueobjects.Money;
 import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.OwnerId;
 
 import java.math.BigDecimal;

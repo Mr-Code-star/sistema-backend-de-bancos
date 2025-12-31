@@ -3,7 +3,7 @@ package com.example.sistemabackenddebancos.accounts.interfaces.rest.resources;
 import com.example.sistemabackenddebancos.accounts.domain.model.aggregates.BankAccount;
 import com.example.sistemabackenddebancos.accounts.domain.model.commands.*;
 import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.AccountType;
-import com.example.sistemabackenddebancos.accounts.domain.model.enumerations.Currency;
+import com.example.sistemabackenddebancos.shared.domain.model.enumerations.Currency;
 import com.example.sistemabackenddebancos.accounts.domain.model.queries.GetAccountByIdQuery;
 import com.example.sistemabackenddebancos.accounts.domain.model.queries.GetAccountByNumberQuery;
 import com.example.sistemabackenddebancos.accounts.domain.model.queries.GetAccountsByOwnerIdQuery;

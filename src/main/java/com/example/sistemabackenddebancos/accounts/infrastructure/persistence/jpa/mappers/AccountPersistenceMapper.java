@@ -4,7 +4,7 @@ package com.example.sistemabackenddebancos.accounts.infrastructure.persistence.j
 import com.example.sistemabackenddebancos.accounts.domain.model.aggregates.BankAccount;
 import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.AccountId;
 import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.AccountNumber;
-import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.Money;
+import com.example.sistemabackenddebancos.shared.domain.model.valueobjects.Money;
 import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.OwnerId;
 import com.example.sistemabackenddebancos.accounts.infrastructure.persistence.jpa.entities.AccountEntity;
 

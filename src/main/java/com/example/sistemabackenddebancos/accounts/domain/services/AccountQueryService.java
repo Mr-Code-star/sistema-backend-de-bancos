@@ -5,7 +5,7 @@ import com.example.sistemabackenddebancos.accounts.domain.model.queries.GetAccou
 import com.example.sistemabackenddebancos.accounts.domain.model.queries.GetAccountByIdQuery;
 import com.example.sistemabackenddebancos.accounts.domain.model.queries.GetAccountByNumberQuery;
 import com.example.sistemabackenddebancos.accounts.domain.model.queries.GetAccountsByOwnerIdQuery;
-import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.Money;
+import com.example.sistemabackenddebancos.shared.domain.model.valueobjects.Money;
 
 import java.util.List;
 import java.util.Optional;
