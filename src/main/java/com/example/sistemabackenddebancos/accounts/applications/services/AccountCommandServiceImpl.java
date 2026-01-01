@@ -5,20 +5,29 @@ import com.example.sistemabackenddebancos.accounts.domain.model.aggregates.BankA
 import com.example.sistemabackenddebancos.accounts.domain.model.commands.*;
 import com.example.sistemabackenddebancos.accounts.domain.repositories.AccountRepository;
 import com.example.sistemabackenddebancos.accounts.domain.services.AccountCommandService;
+import com.example.sistemabackenddebancos.ledger.domain.model.commands.PostLedgerEntryCommand;
+import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.EntrySource;
+import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.EntryType;
+import com.example.sistemabackenddebancos.ledger.domain.model.valueobjects.TransactionReference;
+import com.example.sistemabackenddebancos.ledger.domain.services.LedgerCommandService;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AccountCommandServiceImpl implements AccountCommandService {
 
     private final AccountRepository accountRepository;
     private final AccountNumberGenerator accountNumberGenerator;
+    private final LedgerCommandService ledgerCommandService;
 
     public AccountCommandServiceImpl(AccountRepository accountRepository,
-                                     AccountNumberGenerator accountNumberGenerator) {
+                                     AccountNumberGenerator accountNumberGenerator, LedgerCommandService ledgerCommandService) {
         this.accountRepository = accountRepository;
         this.accountNumberGenerator = accountNumberGenerator;
+        this.ledgerCommandService = ledgerCommandService;
     }
 
     @Override
@@ -40,21 +49,49 @@ public class AccountCommandServiceImpl implements AccountCommandService {
     }
 
     @Override
+    @Transactional
     public Optional<BankAccount> handle(DepositCommand command) {
         var accountOpt = accountRepository.findById(command.accountId());
         if (accountOpt.isEmpty()) return Optional.empty();
 
         var updated = accountOpt.get().deposit(command.amount());
-        return Optional.of(accountRepository.save(updated));
+        updated = accountRepository.save(updated);
+
+        // Ledger CREDIT
+        var ref = new TransactionReference(UUID.randomUUID().toString()); // reference única para esta operación
+        ledgerCommandService.handle(new PostLedgerEntryCommand(
+                updated.id().value(),
+                EntryType.CREDIT,
+                EntrySource.DEPOSIT,
+                updated.currency(),
+                command.amount(),
+                ref
+        ));
+
+        return Optional.of(updated);
     }
 
     @Override
+    @Transactional
     public Optional<BankAccount> handle(WithdrawCommand command) {
         var accountOpt = accountRepository.findById(command.accountId());
         if (accountOpt.isEmpty()) return Optional.empty();
 
         var updated = accountOpt.get().withdraw(command.amount());
-        return Optional.of(accountRepository.save(updated));
+        updated = accountRepository.save(updated);
+
+        // Ledger DEBIT
+        var ref = new TransactionReference(UUID.randomUUID().toString());
+        ledgerCommandService.handle(new PostLedgerEntryCommand(
+                updated.id().value(),
+                EntryType.DEBIT,
+                EntrySource.WITHDRAW,
+                updated.currency(),
+                command.amount(),
+                ref
+        ));
+
+        return Optional.of(updated);
     }
 
     @Override
