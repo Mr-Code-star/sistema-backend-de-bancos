@@ -2,6 +2,11 @@ package com.example.sistemabackenddebancos.transfers.application.services;
 
 import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.AccountId;
 import com.example.sistemabackenddebancos.accounts.domain.repositories.AccountRepository;
+import com.example.sistemabackenddebancos.ledger.domain.model.commands.PostLedgerEntryCommand;
+import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.EntrySource;
+import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.EntryType;
+import com.example.sistemabackenddebancos.ledger.domain.model.valueobjects.TransactionReference;
+import com.example.sistemabackenddebancos.ledger.domain.services.LedgerCommandService;
 import com.example.sistemabackenddebancos.transfers.domain.model.aggregates.Transfer;
 import com.example.sistemabackenddebancos.transfers.domain.model.commands.CreateTransferCommand;
 import com.example.sistemabackenddebancos.transfers.domain.model.enumerations.TransferStatus;
@@ -18,11 +23,13 @@ public class TransferCommandServiceImpl implements TransferCommandService {
 
     private final TransferRepository transferRepository;
     private final AccountRepository accountRepository;
+    private final LedgerCommandService ledgerCommandService;
 
     public TransferCommandServiceImpl(TransferRepository transferRepository,
-                                      AccountRepository accountRepository) {
+                                      AccountRepository accountRepository, LedgerCommandService ledgerCommandService) {
         this.transferRepository = transferRepository;
         this.accountRepository = accountRepository;
+        this.ledgerCommandService = ledgerCommandService;
     }
 
     @Override
@@ -78,8 +85,33 @@ public class TransferCommandServiceImpl implements TransferCommandService {
 
             // 5) Completar transferencia
             transfer = transfer.markCompleted();
-            return Optional.of(transferRepository.save(transfer));
+            transfer = transferRepository.save(transfer);
 
+            // ✅ LEDGER ENTRIES (TRANSFER)
+            // usamos la misma reference para correlación contable
+            var ref = new TransactionReference(command.reference().value());
+
+            // DEBIT en cuenta origen
+            ledgerCommandService.handle(new PostLedgerEntryCommand(
+                    fromId,
+                    EntryType.DEBIT,
+                    EntrySource.TRANSFER,
+                    command.currency(),
+                    command.amount(),
+                    ref
+            ));
+
+            // CREDIT en cuenta destino
+            ledgerCommandService.handle(new PostLedgerEntryCommand(
+                    toId,
+                    EntryType.CREDIT,
+                    EntrySource.TRANSFER,
+                    command.currency(),
+                    command.amount(),
+                    ref
+            ));
+
+            return Optional.of(transfer);
         } catch (Exception ex) {
             // Si algo falla: marcar FAILED
             if (transfer.status() == TransferStatus.PENDING) {
