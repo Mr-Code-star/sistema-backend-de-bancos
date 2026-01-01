@@ -33,6 +33,7 @@ public class SecurityConfig {
                         // Protegido con JWT
                         .requestMatchers("/api/v1/profiles/**").authenticated()
                         .requestMatchers("/api/v1/accounts/**").authenticated()
+                        .requestMatchers("/api/v1/transfers/**").authenticated()
 
                         // (opcional) el resto por ahora permitido
                         .anyRequest().permitAll()
