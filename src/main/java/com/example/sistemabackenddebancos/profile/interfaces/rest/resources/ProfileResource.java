@@ -1,8 +1,12 @@
 package com.example.sistemabackenddebancos.profile.interfaces.rest.resources;
 
+import com.example.sistemabackenddebancos.notifications.domain.model.enumerations.NotificationChannel;
+import com.example.sistemabackenddebancos.notifications.domain.model.enumerations.NotificationType;
 import com.example.sistemabackenddebancos.profile.domain.model.commands.*;
+import com.example.sistemabackenddebancos.profile.domain.model.entities.NotificationPreferences;
 import com.example.sistemabackenddebancos.profile.domain.model.enumerations.AddressType;
 import com.example.sistemabackenddebancos.profile.domain.model.enumerations.DocumentType;
+import com.example.sistemabackenddebancos.profile.domain.model.queries.GetNotificationPreferencesByUserIdQuery;
 import com.example.sistemabackenddebancos.profile.domain.model.queries.GetProfileByIdQuery;
 import com.example.sistemabackenddebancos.profile.domain.model.queries.GetProfileByUserIdQuery;
 import com.example.sistemabackenddebancos.profile.domain.model.valueobjects.*;
@@ -10,6 +14,7 @@ import com.example.sistemabackenddebancos.profile.domain.services.ProfileCommand
 import com.example.sistemabackenddebancos.profile.domain.services.ProfileQueryService;
 import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.requests.*;
 import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.responses.AddressResponse;
+import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.responses.NotificationPreferencesResponse;
 import com.example.sistemabackenddebancos.profile.interfaces.rest.dtos.responses.ProfileResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +22,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/profiles")
@@ -196,6 +201,36 @@ public class ProfileResource {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/me/preferences/notifications")
+    public ResponseEntity<?> getMyPreferences() {
+        var q = new GetNotificationPreferencesByUserIdQuery(new UserId(currentUserId()));
+        var profileOpt = queryService.handle(q);
+
+        if (profileOpt.isEmpty()) return ResponseEntity.notFound().build();
+
+        var prefs = profileOpt.get().notificationPreferences();
+        return ResponseEntity.ok(toResponse(prefs));
+    }
+
+    // -------- UPDATE MY NOTIFICATION PREFERENCES --------
+    @PutMapping("/me/preferences/notifications")
+    public ResponseEntity<?> updateMyPreferences(@RequestBody UpdateNotificationPreferencesRequest req) {
+        var q = new GetNotificationPreferencesByUserIdQuery(new UserId(currentUserId()));
+        var profileOpt = queryService.handle(q);
+
+        if (profileOpt.isEmpty()) return ResponseEntity.notFound().build();
+
+        var profile = profileOpt.get();
+
+        var prefs = toDomainPrefs(req);
+
+        var cmd = new UpdateNotificationPreferencesCommand(profile.id(), prefs);
+
+        return commandService.handle(cmd)
+                .<ResponseEntity<?>>map(updated -> ResponseEntity.ok(toResponse(updated.notificationPreferences())))
+                .orElseGet(() -> ResponseEntity.badRequest().body("Could not update preferences"));
+    }
+
     // -------- Mapper to response --------
     private ProfileResponse toResponse(com.example.sistemabackenddebancos.profile.domain.model.aggregates.Profile p) {
         var addresses = p.addresses().stream()
@@ -225,4 +260,39 @@ public class ProfileResource {
                 addresses
         );
     }
+
+    private NotificationPreferences toDomainPrefs(UpdateNotificationPreferencesRequest req) {
+        Map<NotificationType, Set<NotificationChannel>> map = new EnumMap<>(NotificationType.class);
+
+        if (req.channelsByType() != null) {
+            for (var entry : req.channelsByType().entrySet()) {
+                var type = NotificationType.valueOf(entry.getKey());
+                var channels = EnumSet.noneOf(NotificationChannel.class);
+
+                for (var ch : entry.getValue()) {
+                    channels.add(NotificationChannel.valueOf(ch));
+                }
+                map.put(type, channels);
+            }
+        }
+
+        // si faltan tipos, el VO se encarga de defaults (IN_APP)
+        return new NotificationPreferences(req.emailEnabled(), req.smsEnabled(), map);
+    }
+
+    private NotificationPreferencesResponse toResponse(NotificationPreferences prefs) {
+        Map<String, List<String>> map = new LinkedHashMap<>();
+
+        for (var type : NotificationType.values()) {
+            var channels = prefs.channelsFor(type).stream().map(Enum::name).toList();
+            map.put(type.name(), channels);
+        }
+
+        return new NotificationPreferencesResponse(
+                prefs.emailEnabled(),
+                prefs.smsEnabled(),
+                map
+        );
+    }
+
 }
