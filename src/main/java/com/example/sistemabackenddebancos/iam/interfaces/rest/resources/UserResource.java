@@ -14,7 +14,7 @@ import com.example.sistemabackenddebancos.iam.domain.repositories.UserRepository
 import com.example.sistemabackenddebancos.iam.domain.services.UserCommandService;
 import com.example.sistemabackenddebancos.iam.domain.services.UserQueryService;
 import com.example.sistemabackenddebancos.iam.infrastructure.security.mfa.VerificationCodeService;
-import com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.requests.VerifyMfaRequest;
+import com.example.sistemabackenddebancos.iam.interfaces.rest.dtos.requests.VerifyMfaRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
