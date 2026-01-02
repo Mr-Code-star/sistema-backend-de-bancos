@@ -1,6 +1,7 @@
 package com.example.sistemabackenddebancos.profile.application.services;
 
 import com.example.sistemabackenddebancos.profile.domain.model.aggregates.Profile;
+import com.example.sistemabackenddebancos.profile.domain.model.queries.GetNotificationPreferencesByUserIdQuery;
 import com.example.sistemabackenddebancos.profile.domain.model.queries.GetProfileByIdQuery;
 import com.example.sistemabackenddebancos.profile.domain.model.queries.GetProfileByUserIdQuery;
 import com.example.sistemabackenddebancos.profile.domain.repositories.ProfileRepository;
@@ -27,4 +28,10 @@ public class ProfileQueryServiceImpl implements ProfileQueryService {
     public Optional<Profile> handle(GetProfileByUserIdQuery query) {
         return profileRepository.findByUserId(query.userId());
     }
+
+    @Override
+    public Optional<Profile> handle(GetNotificationPreferencesByUserIdQuery query) {
+        return profileRepository.findByUserId(query.userId());
+    }
+
 }
