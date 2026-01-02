@@ -1,4 +1,4 @@
-package com.example.sistemabackenddebancos.iam.interfaces.rest.resources.dtos.requests;
+package com.example.sistemabackenddebancos.iam.interfaces.rest.dtos.requests;
 
 public record LoginRequest(
         String email,

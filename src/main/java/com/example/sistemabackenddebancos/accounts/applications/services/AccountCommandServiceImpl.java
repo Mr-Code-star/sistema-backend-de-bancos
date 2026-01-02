@@ -10,6 +10,7 @@ import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.Entry
 import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.EntryType;
 import com.example.sistemabackenddebancos.ledger.domain.model.valueobjects.TransactionReference;
 import com.example.sistemabackenddebancos.ledger.domain.services.LedgerCommandService;
+import com.example.sistemabackenddebancos.profile.application.services.NotificationOrchestrator;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +23,14 @@ public class AccountCommandServiceImpl implements AccountCommandService {
     private final AccountRepository accountRepository;
     private final AccountNumberGenerator accountNumberGenerator;
     private final LedgerCommandService ledgerCommandService;
+    private final NotificationOrchestrator notificationOrchestrator;
 
     public AccountCommandServiceImpl(AccountRepository accountRepository,
-                                     AccountNumberGenerator accountNumberGenerator, LedgerCommandService ledgerCommandService) {
+                                     AccountNumberGenerator accountNumberGenerator, LedgerCommandService ledgerCommandService, NotificationOrchestrator notificationOrchestrator) {
         this.accountRepository = accountRepository;
         this.accountNumberGenerator = accountNumberGenerator;
         this.ledgerCommandService = ledgerCommandService;
+        this.notificationOrchestrator = notificationOrchestrator;
     }
 
     @Override
@@ -68,6 +71,15 @@ public class AccountCommandServiceImpl implements AccountCommandService {
                 ref
         ));
 
+        UUID owner = updated.ownerId().value();
+        notificationOrchestrator.notifyAccount(
+                owner,
+                "Deposit received",
+                "Deposit of " + command.amount().toPlainString() + " " + updated.currency().name()
+                        + " into account " + updated.accountNumber().value(),
+                UUID.randomUUID().toString()
+        );
+
         return Optional.of(updated);
     }
 
@@ -90,6 +102,14 @@ public class AccountCommandServiceImpl implements AccountCommandService {
                 command.amount(),
                 ref
         ));
+        UUID owner = updated.ownerId().value();
+        notificationOrchestrator.notifyAccount(
+                owner,
+                "Withdrawal made",
+                "Withdrawal of " + command.amount().toPlainString() + " " + updated.currency().name()
+                        + " from account " + updated.accountNumber().value(),
+                UUID.randomUUID().toString()
+        );
 
         return Optional.of(updated);
     }
