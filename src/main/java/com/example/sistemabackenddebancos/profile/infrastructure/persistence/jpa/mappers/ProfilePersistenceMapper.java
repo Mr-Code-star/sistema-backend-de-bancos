@@ -16,6 +16,7 @@ public class ProfilePersistenceMapper {
     public static Profile toDomain(ProfileEntity e) {
         var fullName = new FullName(e.getGivenNames(), e.getPaternalSurname(), e.getMaternalSurname());
         var phone = new PhoneNumber(e.getPhoneNumber());
+        var prefs = NotificationPreferencesJsonMapper.fromJson(e.getNotificationPreferencesJson());
 
         DocumentNumber doc = null;
         if (e.getDocumentType() != null && e.getDocumentNumber() != null) {
@@ -43,7 +44,8 @@ public class ProfilePersistenceMapper {
                 phone,
                 doc,
                 e.getKycStatus(),
-                addresses
+                addresses,
+                prefs
         );
     }
 
@@ -57,6 +59,10 @@ public class ProfilePersistenceMapper {
         e.setMaternalSurname(p.fullName().maternalSurname());
 
         e.setPhoneNumber(p.phoneNumber().value());
+
+        e.setNotificationPreferencesJson(
+                NotificationPreferencesJsonMapper.toJson(p.notificationPreferences())
+        );
 
         if (p.documentNumber() != null) {
             e.setDocumentType(p.documentNumber().type().name());
