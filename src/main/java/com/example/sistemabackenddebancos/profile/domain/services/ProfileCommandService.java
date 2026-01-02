@@ -12,4 +12,6 @@ public interface ProfileCommandService {
     Optional<Profile> handle(UpdateAddressCommand command);
     Optional<Profile> handle(RemoveAddressCommand command);
     Optional<Profile> handle(SetPrimaryAddressCommand command);
+
+    Optional<Profile> handle(UpdateNotificationPreferencesCommand command);
 }
