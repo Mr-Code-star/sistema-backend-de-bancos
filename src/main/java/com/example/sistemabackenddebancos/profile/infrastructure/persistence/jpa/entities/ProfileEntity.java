@@ -43,6 +43,9 @@ public class ProfileEntity {
     @OneToMany(mappedBy = "profile", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<AddressEntity> addresses = new ArrayList<>();
 
+    @Column(name = "notification_preferences_json", nullable = false, columnDefinition = "json")
+    private String notificationPreferencesJson;
+
     public ProfileEntity() {}
 
     public UUID getId() { return id; }
@@ -74,4 +77,7 @@ public class ProfileEntity {
 
     public List<AddressEntity> getAddresses() { return addresses; }
     public void setAddresses(List<AddressEntity> addresses) { this.addresses = addresses; }
+
+    public String getNotificationPreferencesJson() { return notificationPreferencesJson; }
+    public void setNotificationPreferencesJson(String notificationPreferencesJson) { this.notificationPreferencesJson = notificationPreferencesJson; }
 }
