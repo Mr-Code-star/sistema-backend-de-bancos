@@ -97,4 +97,13 @@ public class ProfileCommandServiceImpl implements ProfileCommandService {
         var updated = profileOpt.get().setPrimaryAddress(command.addressId());
         return Optional.of(profileRepository.save(updated));
     }
+
+    @Override
+    public Optional<Profile> handle(UpdateNotificationPreferencesCommand command) {
+        var profileOpt = profileRepository.findById(command.profileId());
+        if (profileOpt.isEmpty()) return Optional.empty();
+
+        var updated = profileOpt.get().updateNotificationPreferences(command.preferences());
+        return Optional.of(profileRepository.save(updated));
+    }
 }
