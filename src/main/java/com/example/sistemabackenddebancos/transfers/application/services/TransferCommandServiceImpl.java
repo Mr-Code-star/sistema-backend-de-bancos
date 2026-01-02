@@ -7,6 +7,7 @@ import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.Entry
 import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.EntryType;
 import com.example.sistemabackenddebancos.ledger.domain.model.valueobjects.TransactionReference;
 import com.example.sistemabackenddebancos.ledger.domain.services.LedgerCommandService;
+import com.example.sistemabackenddebancos.profile.application.services.NotificationOrchestrator;
 import com.example.sistemabackenddebancos.transfers.domain.model.aggregates.Transfer;
 import com.example.sistemabackenddebancos.transfers.domain.model.commands.CreateTransferCommand;
 import com.example.sistemabackenddebancos.transfers.domain.model.enumerations.TransferStatus;
@@ -24,12 +25,14 @@ public class TransferCommandServiceImpl implements TransferCommandService {
     private final TransferRepository transferRepository;
     private final AccountRepository accountRepository;
     private final LedgerCommandService ledgerCommandService;
+    private final NotificationOrchestrator notificationOrchestrator;
 
     public TransferCommandServiceImpl(TransferRepository transferRepository,
-                                      AccountRepository accountRepository, LedgerCommandService ledgerCommandService) {
+                                      AccountRepository accountRepository, LedgerCommandService ledgerCommandService, NotificationOrchestrator notificationOrchestrator) {
         this.transferRepository = transferRepository;
         this.accountRepository = accountRepository;
         this.ledgerCommandService = ledgerCommandService;
+        this.notificationOrchestrator = notificationOrchestrator;
     }
 
     @Override
@@ -54,6 +57,10 @@ public class TransferCommandServiceImpl implements TransferCommandService {
         // Guardamos PENDING (útil para auditoría si algo falla)
         transfer = transferRepository.save(transfer);
 
+        UUID fromOwner = null;
+        UUID toOwner = null;
+        String transferRef = command.reference().value();
+
         try {
             // 3) Validaciones + cargar cuentas
             UUID fromId = command.fromAccountId();
@@ -64,16 +71,41 @@ public class TransferCommandServiceImpl implements TransferCommandService {
 
             if (fromOpt.isEmpty() || toOpt.isEmpty()) {
                 transfer = transfer.markFailed("Account not found");
-                return Optional.of(transferRepository.save(transfer));
+                transfer = transferRepository.save(transfer);
+
+                // Notificar al emisor si podemos identificarlo
+                if (fromOpt.isPresent()) {
+                    fromOwner = fromOpt.get().ownerId().value();
+                    notificationOrchestrator.notifyTransfer(
+                            fromOwner,
+                            "Transfer failed",
+                            "Your transfer failed: Account not found",
+                            transferRef
+                    );
+                }
+
+                return Optional.of(transfer);
             }
 
             var from = fromOpt.get();
             var to = toOpt.get();
 
+            fromOwner = from.ownerId().value();
+            toOwner = to.ownerId().value();
+
             // Validación moneda (transferencia interna misma moneda)
             if (from.currency() != command.currency() || to.currency() != command.currency()) {
                 transfer = transfer.markFailed("Currency mismatch");
-                return Optional.of(transferRepository.save(transfer));
+                transfer = transferRepository.save(transfer);
+
+                notificationOrchestrator.notifyTransfer(
+                        fromOwner,
+                        "Transfer failed",
+                        "Your transfer failed: Currency mismatch",
+                        transferRef
+                );
+
+                return Optional.of(transfer);
             }
 
             // 4) Ejecutar movimientos (validaciones de estado/saldo ya están en el aggregate)
@@ -111,6 +143,23 @@ public class TransferCommandServiceImpl implements TransferCommandService {
                     ref
             ));
 
+            // ✅ NOTIFICATIONS (según preferencias del usuario: IN_APP/EMAIL/SMS)
+            notificationOrchestrator.notifyTransfer(
+                    fromOwner,
+                    "Transfer sent",
+                    "You sent " + command.amount().toPlainString() + " " + command.currency().name()
+                            + " to account " + to.accountNumber().value(),
+                    transferRef
+            );
+
+            notificationOrchestrator.notifyTransfer(
+                    toOwner,
+                    "Transfer received",
+                    "You received " + command.amount().toPlainString() + " " + command.currency().name()
+                            + " from account " + from.accountNumber().value(),
+                    transferRef
+            );
+
             return Optional.of(transfer);
         } catch (Exception ex) {
             // Si algo falla: marcar FAILED
@@ -118,6 +167,17 @@ public class TransferCommandServiceImpl implements TransferCommandService {
                 transfer = transfer.markFailed(ex.getMessage());
                 transfer = transferRepository.save(transfer);
             }
+
+            // Notificar al emisor si ya lo conocemos
+            if (fromOwner != null) {
+                notificationOrchestrator.notifyTransfer(
+                        fromOwner,
+                        "Transfer failed",
+                        "Your transfer failed: " + (transfer.failureReason() != null ? transfer.failureReason() : ex.getMessage()),
+                        transferRef
+                );
+            }
+
             return Optional.of(transfer);
         }
     }
