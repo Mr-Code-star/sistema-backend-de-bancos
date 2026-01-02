@@ -9,6 +9,7 @@ import com.example.sistemabackenddebancos.notifications.domain.model.valueobject
 import com.example.sistemabackenddebancos.notifications.domain.services.NotificationCommandService;
 import com.example.sistemabackenddebancos.notifications.domain.services.NotificationQueryService;
 import com.example.sistemabackenddebancos.notifications.interfaces.dtos.responses.NotificationResponse;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/notifications")
+@SecurityRequirement(name = "bearerAuth")
 public class NotificationResource {
 
     private final NotificationQueryService queryService;
