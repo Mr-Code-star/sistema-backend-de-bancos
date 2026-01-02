@@ -8,4 +8,6 @@ import java.util.Optional;
 public interface ProfileQueryService {
     Optional<Profile> handle(GetProfileByIdQuery query);
     Optional<Profile> handle(GetProfileByUserIdQuery query);
+
+    Optional<Profile> handle(GetNotificationPreferencesByUserIdQuery query);
 }
