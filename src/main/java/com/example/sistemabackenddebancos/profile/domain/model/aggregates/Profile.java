@@ -1,6 +1,7 @@
 package com.example.sistemabackenddebancos.profile.domain.model.aggregates;
 
 import com.example.sistemabackenddebancos.profile.domain.model.entities.Address;
+import com.example.sistemabackenddebancos.profile.domain.model.entities.NotificationPreferences;
 import com.example.sistemabackenddebancos.profile.domain.model.enumerations.*;
 import com.example.sistemabackenddebancos.profile.domain.model.valueobjects.*;
 
@@ -22,6 +23,8 @@ public class Profile {
     private final DocumentNumber documentNumber; // opcional
     private final KycStatus kycStatus;
 
+    private final NotificationPreferences notificationPreferences;
+
     private final List<Address> addresses;
 
     public Profile(ProfileId id,
@@ -30,7 +33,7 @@ public class Profile {
                    PhoneNumber phoneNumber,
                    DocumentNumber documentNumber,
                    KycStatus kycStatus,
-                   List<Address> addresses) {
+                   List<Address> addresses, NotificationPreferences notificationPreferences) {
 
         this.id = Objects.requireNonNull(id, "Profile.id cannot be null");
         this.userId = Objects.requireNonNull(userId, "Profile.userId cannot be null");
@@ -38,6 +41,7 @@ public class Profile {
         this.phoneNumber = Objects.requireNonNull(phoneNumber, "Profile.phoneNumber cannot be null");
         this.documentNumber = documentNumber; // nullable OK
         this.kycStatus = Objects.requireNonNull(kycStatus, "Profile.kycStatus cannot be null");
+        this.notificationPreferences = notificationPreferences;
 
         var list = (addresses == null) ? new ArrayList<Address>() : new ArrayList<>(addresses);
         ensureAddressRules(list);
@@ -45,9 +49,11 @@ public class Profile {
     }
 
     public static Profile createNew(UserId userId, FullName fullName, PhoneNumber phoneNumber, DocumentNumber documentNumber) {
-        return new Profile(ProfileId.newId(), userId, fullName, phoneNumber, documentNumber, KycStatus.PENDING, List.of());
+        return new Profile(ProfileId.newId(), userId, fullName, phoneNumber, documentNumber, KycStatus.PENDING, List.of(),   NotificationPreferences.defaults()
+        );
     }
 
+    public NotificationPreferences notificationPreferences() { return notificationPreferences; }
     public ProfileId id() { return id; }
     public UserId userId() { return userId; }
     public FullName fullName() { return fullName; }
@@ -57,7 +63,11 @@ public class Profile {
     public List<Address> addresses() { return addresses; }
 
     public Profile updateBasicInfo(FullName newFullName, PhoneNumber newPhoneNumber) {
-        return new Profile(id, userId, newFullName, newPhoneNumber, documentNumber, kycStatus, addresses);
+        return new Profile(id, userId, newFullName, newPhoneNumber, documentNumber, kycStatus, addresses,  NotificationPreferences.defaults());
+    }
+
+    public Profile updateNotificationPreferences(NotificationPreferences prefs) {
+        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, addresses, prefs);
     }
 
     public Profile updateDocument(DocumentNumber newDocument) {
@@ -65,7 +75,7 @@ public class Profile {
         if (kycStatus == KycStatus.VERIFIED) {
             throw new IllegalStateException("Cannot change document when KYC is VERIFIED");
         }
-        return new Profile(id, userId, fullName, phoneNumber, newDocument, kycStatus, addresses);
+        return new Profile(id, userId, fullName, phoneNumber, newDocument, kycStatus, addresses,  NotificationPreferences.defaults());
     }
 
     public Profile addAddress(AddressType type,
@@ -99,7 +109,7 @@ public class Profile {
             list = forceSinglePrimary(list, address.id());
         }
 
-        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, list);
+        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, list,  NotificationPreferences.defaults());
     }
 
     public Profile updateAddress(AddressId addressId,
@@ -125,7 +135,7 @@ public class Profile {
 
         if (!found) throw new IllegalArgumentException("Address not found");
 
-        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, list);
+        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, list,  NotificationPreferences.defaults());
     }
 
     public Profile removeAddress(AddressId addressId) {
@@ -138,16 +148,16 @@ public class Profile {
             list = forceSinglePrimary(list, list.get(0).id());
         }
 
-        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, list);
+        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, list,  NotificationPreferences.defaults());
     }
 
     public Profile setPrimaryAddress(AddressId addressId) {
         var list = forceSinglePrimary(new ArrayList<>(addresses), addressId);
-        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, list);
+        return new Profile(id, userId, fullName, phoneNumber, documentNumber, kycStatus, list,  NotificationPreferences.defaults());
     }
 
     public Profile markKycVerified() {
-        return new Profile(id, userId, fullName, phoneNumber, documentNumber, KycStatus.VERIFIED, addresses);
+        return new Profile(id, userId, fullName, phoneNumber, documentNumber, KycStatus.VERIFIED, addresses,  NotificationPreferences.defaults());
     }
 
     private static void ensureAddressRules(List<Address> list) {
