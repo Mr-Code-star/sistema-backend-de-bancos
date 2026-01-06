@@ -14,5 +14,6 @@ public record CreatePaymentCommand(
         MerchantCode merchantCode,
         PaymentType type,
         Currency currency,
-        BigDecimal amount
+        BigDecimal amount,
+        String customerRef
 ) {}
