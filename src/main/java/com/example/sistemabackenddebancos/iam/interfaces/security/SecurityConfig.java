@@ -36,6 +36,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/transfers/**").authenticated()
                         .requestMatchers("/api/v1/ledger/**").authenticated()
                         .requestMatchers("/api/v1/notifications/**").authenticated()
+                        .requestMatchers("/api/v1/merchant/**").permitAll()
+                        .requestMatchers("/api/v1/payments/**").authenticated()
 
                         // (opcional) el resto por ahora permitido
                         .anyRequest().permitAll()
