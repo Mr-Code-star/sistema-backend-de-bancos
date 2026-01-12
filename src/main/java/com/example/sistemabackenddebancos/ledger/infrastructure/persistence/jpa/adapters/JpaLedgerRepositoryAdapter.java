@@ -7,6 +7,7 @@ import com.example.sistemabackenddebancos.ledger.infrastructure.persistence.jpa.
 import com.example.sistemabackenddebancos.ledger.infrastructure.persistence.jpa.repositories.SpringDataLedgerJpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,6 +37,23 @@ public class JpaLedgerRepositoryAdapter implements LedgerRepository {
     @Override
     public List<LedgerEntry> findAllByReference(TransactionReference reference) {
         return jpa.findAllByReferenceOrderByCreatedAtDesc(reference.value())
+                .stream()
+                .map(LedgerPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<LedgerEntry> findAllByAccountIdBetween(UUID accountId, Instant fromExclusive, Instant toInclusive) {
+        return jpa.findAllByAccountIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(
+                        accountId, fromExclusive, toInclusive)
+                .stream()
+                .map(LedgerPersistenceMapper::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<LedgerEntry> findAllByAccountIdBefore(UUID accountId, Instant beforeInclusive) {
+        return jpa.findAllByAccountIdAndCreatedAtLessThanOrderByCreatedAtDesc(accountId, beforeInclusive)
                 .stream()
                 .map(LedgerPersistenceMapper::toDomain)
                 .toList();

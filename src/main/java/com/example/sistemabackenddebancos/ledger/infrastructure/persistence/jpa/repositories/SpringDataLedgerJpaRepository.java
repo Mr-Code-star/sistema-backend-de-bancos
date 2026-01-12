@@ -4,6 +4,7 @@ import com.example.sistemabackenddebancos.ledger.infrastructure.persistence.jpa.
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -13,4 +14,11 @@ public interface SpringDataLedgerJpaRepository extends JpaRepository<LedgerEntry
     List<LedgerEntryEntity> findAllByAccountIdOrderByCreatedAtDesc(UUID accountId);
 
     List<LedgerEntryEntity> findAllByReferenceOrderByCreatedAtDesc(String reference);
+
+    List<LedgerEntryEntity> findAllByAccountIdAndCreatedAtGreaterThanEqualAndCreatedAtLessThanOrderByCreatedAtDesc(
+            UUID accountId, Instant from, Instant to);
+
+    List<LedgerEntryEntity> findAllByAccountIdAndCreatedAtLessThanOrderByCreatedAtDesc(
+            UUID accountId, Instant before);
+
 }
