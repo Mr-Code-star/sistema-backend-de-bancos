@@ -38,6 +38,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/notifications/**").authenticated()
                         .requestMatchers("/api/v1/merchant/**").permitAll()
                         .requestMatchers("/api/v1/payments/**").authenticated()
+                        .requestMatchers("/api/v1/statements/**").authenticated()
 
                         // (opcional) el resto por ahora permitido
                         .anyRequest().permitAll()
