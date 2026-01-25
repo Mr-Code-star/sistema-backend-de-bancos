@@ -7,6 +7,10 @@ import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.Entry
 import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.EntryType;
 import com.example.sistemabackenddebancos.ledger.domain.model.valueobjects.TransactionReference;
 import com.example.sistemabackenddebancos.ledger.domain.services.LedgerCommandService;
+import com.example.sistemabackenddebancos.limits.domain.model.commands.CheckAndConsumeLimitCommand;
+import com.example.sistemabackenddebancos.limits.domain.model.enumerations.LimitDecision;
+import com.example.sistemabackenddebancos.limits.domain.model.enumerations.OperationType;
+import com.example.sistemabackenddebancos.limits.domain.services.LimitService;
 import com.example.sistemabackenddebancos.profile.application.services.NotificationOrchestrator;
 import com.example.sistemabackenddebancos.transfers.domain.model.aggregates.Transfer;
 import com.example.sistemabackenddebancos.transfers.domain.model.commands.CreateTransferCommand;
@@ -22,17 +26,20 @@ import java.util.UUID;
 @Service
 public class TransferCommandServiceImpl implements TransferCommandService {
 
+    private final LimitService limitService;
     private final TransferRepository transferRepository;
     private final AccountRepository accountRepository;
     private final LedgerCommandService ledgerCommandService;
     private final NotificationOrchestrator notificationOrchestrator;
 
     public TransferCommandServiceImpl(TransferRepository transferRepository,
-                                      AccountRepository accountRepository, LedgerCommandService ledgerCommandService, NotificationOrchestrator notificationOrchestrator) {
+                                      AccountRepository accountRepository, LedgerCommandService ledgerCommandService, NotificationOrchestrator notificationOrchestrator,
+                                      LimitService limitService) {
         this.transferRepository = transferRepository;
         this.accountRepository = accountRepository;
         this.ledgerCommandService = ledgerCommandService;
         this.notificationOrchestrator = notificationOrchestrator;
+        this.limitService = limitService;
     }
 
     @Override
@@ -105,6 +112,27 @@ public class TransferCommandServiceImpl implements TransferCommandService {
                         transferRef
                 );
 
+                return Optional.of(transfer);
+            }
+
+            // Limits: daily transfer limit (amount + count)
+            var limitResult = limitService.checkAndConsume(new CheckAndConsumeLimitCommand(
+                    fromOwner,
+                    OperationType.TRANSFER,
+                    command.amount()
+            ));
+
+            if(limitResult.decision() == LimitDecision.DENY) {
+                transfer = transfer.markFailed(limitResult.reason());
+                transfer = transferRepository.save(transfer);
+
+                // Notificacion al emisor
+                notificationOrchestrator.notifyTransfer(
+                        fromOwner,
+                        "Transfer failed",
+                        "Your transfer failed: " + limitResult.reason(),
+                        transferRef
+                );
                 return Optional.of(transfer);
             }
 

@@ -7,6 +7,10 @@ import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.Entry
 import com.example.sistemabackenddebancos.ledger.domain.model.enumerations.EntryType;
 import com.example.sistemabackenddebancos.ledger.domain.model.valueobjects.TransactionReference;
 import com.example.sistemabackenddebancos.ledger.domain.services.LedgerCommandService;
+import com.example.sistemabackenddebancos.limits.domain.model.commands.CheckAndConsumeLimitCommand;
+import com.example.sistemabackenddebancos.limits.domain.model.enumerations.LimitDecision;
+import com.example.sistemabackenddebancos.limits.domain.model.enumerations.OperationType;
+import com.example.sistemabackenddebancos.limits.domain.services.LimitService;
 import com.example.sistemabackenddebancos.payments.applications.integrations.MerchantGateway;
 import com.example.sistemabackenddebancos.payments.domain.model.aggregates.Payment;
 import com.example.sistemabackenddebancos.payments.domain.model.commands.CreatePaymentCommand;
@@ -22,6 +26,7 @@ import java.util.Optional;
 @Service
 public class PaymentCommandServiceImpl implements PaymentCommandService {
 
+    private final LimitService limitService;
     private final PaymentRepository paymentRepository;
     private final AccountRepository accountRepository;
     private final MerchantGateway merchantGateway;
@@ -32,12 +37,15 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
                                      AccountRepository accountRepository,
                                      MerchantGateway merchantGateway,
                                      LedgerCommandService ledgerCommandService,
-                                     NotificationOrchestrator notificationOrchestrator) {
+                                     NotificationOrchestrator notificationOrchestrator,
+                                     LimitService limitService
+    ) {
         this.paymentRepository = paymentRepository;
         this.accountRepository = accountRepository;
         this.merchantGateway = merchantGateway;
         this.ledgerCommandService = ledgerCommandService;
         this.notificationOrchestrator = notificationOrchestrator;
+        this.limitService = limitService;
     }
 
     @Override
@@ -97,6 +105,22 @@ public class PaymentCommandServiceImpl implements PaymentCommandService {
         // 5) SUCCESS => debitar cuenta (withdraw) + ledger DEBIT + payment COMPLETED
         try {
             var updatedAccount = account.withdraw(command.amount());
+
+            // Limits: daily payment limits (amoun + count)
+            var limitResult = limitService.checkAndConsume(new CheckAndConsumeLimitCommand(
+                    account.ownerId().value(),
+                    OperationType.PAYMENT,
+                    command.amount()
+            ));
+
+            if (limitResult.decision() == LimitDecision.DENY) {
+                payment = payment.markFailed(limitResult.reason());
+                payment = paymentRepository.save(payment);
+
+                notifyPaymentFailed(account.ownerId().value(), payment);
+                return Optional.of(payment);
+            }
+
             accountRepository.save(updatedAccount);
 
             // Ledger DEBIT (PAYMENT)
