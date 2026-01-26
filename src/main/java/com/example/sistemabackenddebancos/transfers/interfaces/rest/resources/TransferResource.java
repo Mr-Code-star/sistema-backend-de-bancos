@@ -4,6 +4,7 @@ import com.example.sistemabackenddebancos.accounts.domain.model.queries.*;
 import com.example.sistemabackenddebancos.accounts.domain.model.valueobjects.AccountId;
 import com.example.sistemabackenddebancos.accounts.domain.services.AccountQueryService;
 import com.example.sistemabackenddebancos.shared.domain.model.enumerations.Currency;
+import com.example.sistemabackenddebancos.transfers.domain.model.aggregates.Transfer;
 import com.example.sistemabackenddebancos.transfers.domain.model.commands.*;
 import com.example.sistemabackenddebancos.transfers.domain.model.queries.GetTransferByIdQuery;
 import com.example.sistemabackenddebancos.transfers.domain.model.queries.GetTransfersByAccountIdQuery;
@@ -113,7 +114,7 @@ public class TransferResource {
         return ResponseEntity.ok(list);
     }
 
-    private TransferResponse toResponse(com.example.sistemabackenddebancos.transfers.domain.model.aggregates.Transfer t) {
+    private TransferResponse toResponse(Transfer t) {
         return new TransferResponse(
                 t.id().value().toString(),
                 t.reference().value(),

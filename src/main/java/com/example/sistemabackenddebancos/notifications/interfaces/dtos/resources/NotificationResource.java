@@ -1,5 +1,6 @@
 package com.example.sistemabackenddebancos.notifications.interfaces.dtos.resources;
 
+import com.example.sistemabackenddebancos.notifications.domain.model.aggregates.Notification;
 import com.example.sistemabackenddebancos.notifications.domain.model.commands.ArchiveNotificationCommand;
 import com.example.sistemabackenddebancos.notifications.domain.model.commands.MarkAsReadCommand;
 import com.example.sistemabackenddebancos.notifications.domain.model.queries.GetMyNotificationsQuery;
@@ -36,7 +37,7 @@ public class NotificationResource {
         return UUID.fromString(auth.getPrincipal().toString());
     }
 
-    private boolean isOwner(com.example.sistemabackenddebancos.notifications.domain.model.aggregates.Notification n) {
+    private boolean isOwner(Notification n) {
         return n.recipientId().value().equals(currentUserId());
     }
 
@@ -78,7 +79,7 @@ public class NotificationResource {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    private NotificationResponse toResponse(com.example.sistemabackenddebancos.notifications.domain.model.aggregates.Notification n) {
+    private NotificationResponse toResponse(Notification n) {
         return new NotificationResponse(
                 n.id().value().toString(),
                 n.recipientId().value().toString(),
