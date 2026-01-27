@@ -54,4 +54,16 @@ public class User {
     public boolean mfaEnabled() { return mfaEnabled; }
     public List<MfaMethod> mfaMethods() { return mfaMethods; }
     public int failedAttempts() { return failedAttempts; }
+
+    public User withPasswordHash(PasswordHash newPasswordHash) {
+        return new User(
+                this.id(),
+                this.email(),
+                newPasswordHash,
+                this.status(),
+                this.mfaEnabled(),
+                this.mfaMethods(),
+                0
+        );
+    }
 }
