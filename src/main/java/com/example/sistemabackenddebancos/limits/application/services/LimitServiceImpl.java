@@ -6,6 +6,7 @@ import com.example.sistemabackenddebancos.limits.domain.model.enumerations.Opera
 import com.example.sistemabackenddebancos.limits.domain.model.valueobjects.PeriodKey;
 import com.example.sistemabackenddebancos.limits.domain.repositories.LimitUsageRepository;
 import com.example.sistemabackenddebancos.limits.domain.services.LimitService;
+import com.example.sistemabackenddebancos.limits.infrastructure.persistence.jpa.repositories.SpringDataLimitOverrideJpaRepository;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,13 +17,15 @@ import java.util.Map;
 public class LimitServiceImpl implements LimitService {
 
     private final LimitUsageRepository limitUsageRepository;
+    private final SpringDataLimitOverrideJpaRepository overrideRepo;
 
     // Límites diarios (MVP): maxAmount + maxCount
     private final Map<OperationType, BigDecimal> maxAmountDaily = new EnumMap<>(OperationType.class);
     private final Map<OperationType, Integer> maxCountDaily = new EnumMap<>(OperationType.class);
 
-    public LimitServiceImpl(LimitUsageRepository limitUsageRepository) {
+    public LimitServiceImpl(LimitUsageRepository limitUsageRepository, SpringDataLimitOverrideJpaRepository overrideRepo) {
         this.limitUsageRepository = limitUsageRepository;
+        this.overrideRepo = overrideRepo;
 
         // ✅ Ajusta estos valores como quieras
         maxAmountDaily.put(OperationType.TRANSFER, new BigDecimal("5000.00"));
@@ -48,6 +51,11 @@ public class LimitServiceImpl implements LimitService {
         BigDecimal maxAmount = maxAmountDaily.getOrDefault(command.operationType(), new BigDecimal("0.00"));
         int maxCount = maxCountDaily.getOrDefault(command.operationType(), 0);
 
+        var overrideOpt = overrideRepo.findByUserIdAndOperationType(command.userId(), command.operationType());
+        if (overrideOpt.isPresent()) {
+            maxAmount = overrideOpt.get().getMaxDailyAmount();
+            maxCount = overrideOpt.get().getMaxDailyCount();
+        }
         var result = usage.check(command.amount(), maxAmount, maxCount);
 
         if (result.decision() == com.example.sistemabackenddebancos.limits.domain.model.enumerations.LimitDecision.ALLOW) {
