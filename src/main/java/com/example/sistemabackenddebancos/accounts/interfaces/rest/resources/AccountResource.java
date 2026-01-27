@@ -136,6 +136,7 @@ public class AccountResource {
         }
     }
 
+    /**
     // -------- FREEZE (valida ownership) --------
     @PutMapping("/{accountId}/freeze")
     public ResponseEntity<?> freeze(@PathVariable String accountId) {
@@ -192,8 +193,8 @@ public class AccountResource {
             return ResponseEntity.badRequest().body(ex.getMessage());
         }
     }
-
-    private AccountResponse toResponse(com.example.sistemabackenddebancos.accounts.domain.model.aggregates.BankAccount a) {
+    */
+    private AccountResponse toResponse(BankAccount a) {
         return new AccountResponse(
                 a.id().value().toString(),
                 a.ownerId().value().toString(),
