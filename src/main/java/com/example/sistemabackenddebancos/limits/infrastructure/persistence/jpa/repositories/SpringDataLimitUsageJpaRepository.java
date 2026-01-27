@@ -13,4 +13,8 @@ import java.util.UUID;
 public interface SpringDataLimitUsageJpaRepository extends JpaRepository<LimitUsageEntity, UUID> {
 
     Optional<LimitUsageEntity> findByUserIdAndOperationTypeAndDay(UUID userId, OperationType operationType, LocalDate day);
+
+    long deleteByUserIdAndDay(UUID userId, LocalDate day);
+
+    long deleteByUserIdAndOperationTypeAndDay(UUID userId, OperationType operationType, LocalDate day);
 }
