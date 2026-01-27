@@ -12,14 +12,23 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenValidator validator;
 
-    public JwtAuthenticationFilter(JwtTokenValidator validator) {
+    private final Set<String> adminUserIds;
+
+    public JwtAuthenticationFilter(JwtTokenValidator validator, String adminIdsCsv) {
         this.validator = validator;
+        this.adminUserIds = Arrays.stream(adminIdsCsv.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toSet());
     }
 
     @Override
@@ -40,14 +49,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private void setAuthFromClaims(Claims claims) {
-        // subject = userId que pusiste en JwtTokenService (subject(user.id))
         String userId = claims.getSubject();
 
-        // opcional: usar status/email como authorities/claims
-        // Por ahora: ROLE_USER fijo
-        var authorities = List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        System.out.println("==== JWT DEBUG ====");
+        System.out.println("SUB=" + userId);
+        System.out.println("ADMINS=" + adminUserIds);
+        System.out.println("IS_ADMIN=" + adminUserIds.contains(userId));
+        System.out.println("===================");
 
-        var authentication = new UsernamePasswordAuthenticationToken(userId, null, authorities);
+        var authorities = adminUserIds.contains(userId)
+                ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                : List.of(new SimpleGrantedAuthority("ROLE_USER"));
+
+        var authentication =
+                new UsernamePasswordAuthenticationToken(userId, null, authorities);
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }
