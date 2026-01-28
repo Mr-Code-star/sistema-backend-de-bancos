@@ -14,6 +14,7 @@ import com.example.sistemabackenddebancos.iam.domain.repositories.UserRepository
 import com.example.sistemabackenddebancos.iam.domain.services.UserCommandService;
 import com.example.sistemabackenddebancos.iam.domain.services.UserQueryService;
 import com.example.sistemabackenddebancos.iam.infrastructure.security.mfa.VerificationCodeService;
+import com.example.sistemabackenddebancos.iam.interfaces.rest.dtos.requests.RegisterMfaMethodRequest;
 import com.example.sistemabackenddebancos.iam.interfaces.rest.dtos.requests.VerifyMfaRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -88,22 +89,6 @@ public class UserResource {
 
     // -------- Commands --------
 
-    public record ChangePasswordRequest(String currentPassword, String newPassword) {}
-
-    @PutMapping("/{id}/password")
-    public ResponseEntity<?> changePassword(@PathVariable String id, @RequestBody ChangePasswordRequest req) {
-        var cmd = new ChangePasswordCommand(
-                new UserId(UUID.fromString(id)),
-                req.currentPassword(),
-                req.newPassword()
-        );
-
-        return userCommandService.handle(cmd)
-                .<ResponseEntity<?>>map(u -> ResponseEntity.ok(Map.of("updated", true)))
-                .orElseGet(() -> ResponseEntity.badRequest().body("Could not change password"));
-    }
-
-    public record RegisterMfaMethodRequest(String type, String destination) {}
 
     @PostMapping("/{id}/mfa-methods")
     public ResponseEntity<?> registerMfa(@PathVariable String id, @RequestBody RegisterMfaMethodRequest req) {
