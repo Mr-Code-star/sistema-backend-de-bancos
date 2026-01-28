@@ -56,3 +56,27 @@ JWT_EXP_MINUTES=60
 - Control de límites diarios (monto y cantidad)
 
 - Admin / Compliance con auditoría completa
+
+-----
+
+### IAM (Identity & Access Management)
+
+El BC IAM gestiona toda la identidad y seguridad del sistema. Su responsabilidad es:
+
+- Registro y autenticación de usuarios
+
+- Emisión y validación de JWT (sesión stateless)
+
+- Gestión de MFA (Multi-Factor Authentication)
+
+- Recuperación de contraseña mediante token temporal enviado por email
+
+- Estado del usuario (ACTIVE / BLOCKED / PENDING) y control de intentos fallidos
+
+#### Endpoints 
+
+1) `api/v1/iam/auth/register`
+
+este endpoint tiene la funcion de registrar un nuevo usuario. Crea a un usuario nuevo con email y password hasheada e inizializa el estado de un nuevo usuario.
+   
+   
