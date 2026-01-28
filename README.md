@@ -75,8 +75,6 @@ El BC IAM gestiona toda la identidad y seguridad del sistema. Su responsabilidad
 
 #### Endpoints 
 
-1) `api/v1/iam/auth/register`
-
-este endpoint tiene la funcion de registrar un nuevo usuario. Crea a un usuario nuevo con email y password hasheada e inizializa el estado de un nuevo usuario.
+1) `api/v1/iam/auth/register`:  Este endpoint tiene la funcion de registrar un nuevo usuario. Crea a un usuario nuevo con email y password hasheada e inizializa el estado de un nuevo usuario.
    
    
