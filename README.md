@@ -13,7 +13,8 @@ También ilustra la configuración de la documentación open-api y la integraci�
 - Validation
 - MySQL Database
 - Domain-Driven Design
-
+- Spring Security
+  
 ## Configuracion .env
 
 Crear un archivo de variables de entornos con estas credenciales
@@ -31,3 +32,27 @@ APP_EMAIL_SENDER_NAME=Sistema de Bancos;
 JWT_EXP_MINUTES=60
 
 ```
+
+## 📌 Características principales
+
+- Autenticación segura con JWT
+
+- MFA (Email y SMS)
+
+- Recuperación de contraseña por email con token temporal
+
+- Gestión de cuentas bancarias (ACTIVE / FROZEN / CLOSED)
+
+- Transferencias internas con idempotency
+
+- Pagos a servicios (agua, luz, internet, universidades)
+
+- Ledger como fuente de verdad contable
+
+- Estados de cuenta en JSON y PDF
+
+- Sistema de notificaciones (in-app, email, SMS)
+
+- Control de límites diarios (monto y cantidad)
+
+- Admin / Compliance con auditoría completa
