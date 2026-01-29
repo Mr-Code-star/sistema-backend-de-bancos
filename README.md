@@ -14,6 +14,9 @@ También ilustra la configuración de la documentación open-api y la integraci�
 - MySQL Database
 - Domain-Driven Design
 - Spring Security
+- JavaMailSender
+- Vonage SMS
+- Apache PDFBox
   
 ## Configuracion .env
 
