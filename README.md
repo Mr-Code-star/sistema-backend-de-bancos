@@ -61,3 +61,16 @@ JWT_EXP_MINUTES=60
 - Admin / Compliance con auditoría completa
 
 -----
+
+### Bounded Contex
+
+- [IAM](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/iam#iam-identity--access-management)
+- [Accounts](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/accounts#accounts-accounts-management)
+- [Admin](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/admin#admin--compliance-backoffice--control)
+- [ledger](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/ledger#ledger-transactions--accounting-ledger)
+- [limits](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/limits#limits-operational-limits-management)
+- [notification](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/notifications#notifications-user-notifications)
+- [payments](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/payments)
+- [profile](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/profile#profile-customer-profile-management)
+- [statemets](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/statements#statements--reports-account-statements)
+- [transfers](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/transfers#transfers-transfer-management)
