@@ -74,3 +74,6 @@ JWT_EXP_MINUTES=60
 - [profile](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/profile#profile-customer-profile-management)
 - [statemets](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/statements#statements--reports-account-statements)
 - [transfers](https://github.com/Mr-Code-star/sistema-backend-de-bancos/tree/master/src/main/java/com/example/sistemabackenddebancos/transfers#transfers-transfer-management)
+
+### USER STORIES 
+- [user-stories](https://github.com/Mr-Code-star/sistema-backend-de-bancos/blob/master/user-stories.md)
